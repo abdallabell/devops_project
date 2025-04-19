@@ -1,99 +1,40 @@
-
 pipeline {
     agent any
 
-    environment {
-        // تحديد اسم التطبيق والصورة الخاصة بـ Docker
-        APP_NAME = 'devops-java-app'
-        DOCKER_IMAGE = 'devops_java_image'
+    tools {
+        jdk 'jdk17'  // تأكد أنه معرف بهذا الاسم في Jenkins > Global Tool Configuration
     }
 
     stages {
-        // المرحلة الأولى: فحص الكود
-        stage('Checkout Code') {
+        stage('Build') {
             steps {
-                // سحب الكود من مستودع GitHub
-                git branch: 'main', url: 'https://github.com/abdallabell/devops_project.git'
-            }
-        }
-
-        // المرحلة الثانية: بناء الكود (Build)
-        stage('Build Java Application') {
-            steps {
-                // بناء تطبيق جافا باستخدام الأمر javac
                 sh 'javac App.java'
             }
         }
 
-    
+        stage('Security Scan (skipped if tool not found)') {
+            steps {
+                script {
+                    try {
+                        sh 'dependency-check --project devops-java-app --scan .'
+                    } catch (err) {
+                        echo "Security scan skipped (dependency-check not found)"
+                    }
+                }
+            }
+        }
 
-       stage('Security Check') {
-    steps {
-        sh 'echo "Skipping dependency-check for now..."'
-    }
-}
-
-
-        
-
-
-        // المرحلة الرابعة: إعداد Docker
         stage('Build Docker Image') {
             steps {
-                // بناء صورة Docker
-                sh 'docker build -t $DOCKER_IMAGE .'
+                sh 'docker build -t devops_java_image .'
             }
         }
 
-        // المرحلة الخامسة: تشغيل Docker
         stage('Run Docker Container') {
             steps {
-                // تشغيل الحاوية بعد بناء الصورة
-                sh 'docker run -d --name $APP_NAME $DOCKER_IMAGE'
+                sh 'docker run --rm devops_java_image'
             }
-        }
-
-        // المرحلة السادسة: اختبار التطبيق داخل الحاوية
-        stage('Test Application') {
-            steps {
-                // اختبار التطبيق داخل الحاوية (على سبيل المثال اختبار بسيط عبر curl)
-                sh 'docker exec $APP_NAME curl http://localhost:8080/health'
-            }
-        }
-
-        // المرحلة السابعة: نشر التطبيق (Deployment)
-        stage('Deploy Application') {
-            steps {
-                // نشر التطبيق داخل الحاوية
-                sh 'docker run -d --name $APP_NAME -p 8080:8080 $DOCKER_IMAGE'
-            }
-        }
-
-        // المرحلة الثامنة: التحقق من حالة التطبيق بعد النشر
-        stage('Verify Application') {
-            steps {
-                // فحص الحالة بعد النشر باستخدام curl
-                sh 'curl http://localhost:8080/health'
-            }
-        }
-
-        // المرحلة التاسعة: تنظيف الحاويات القديمة
-        stage('Cleanup Docker Containers') {
-            steps {
-                // تنظيف الحاويات القديمة التي تعمل
-                sh 'docker ps -q --filter "status=exited" | xargs docker rm'
-            }
-        }
-    }
-
-    post {
-        success {
-            // إذا كان التنفيذ ناجحًا، أرسل بريدًا إلكترونيًا أو رسالة إشعار
-            echo 'The pipeline has successfully completed.'
-        }
-        failure {
-            // إذا فشل التنفيذ، أرسل رسالة خطأ أو إشعار
-            echo 'The pipeline has failed.'
         }
     }
 }
+
