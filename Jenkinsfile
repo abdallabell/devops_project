@@ -12,7 +12,7 @@ pipeline {
             }
         }
 
-        stage('Security Scan (skipped if tool not found)') {
+        stage('Security Scan ') {
             steps {
                 script {
                     try {
