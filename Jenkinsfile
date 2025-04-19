@@ -1,30 +1,29 @@
 pipeline {
     agent any
 
-    environment {
-        // تحديد اسم التطبيق والصورة الخاصة بـ Docker
-        APP_NAME = 'devops-java-app'
-        DOCKER_IMAGE = 'devops_java_image'
+    tools {
+        // تحديد الأدوات المستخدمة في Jenkins مثل JDK و Maven
+        jdk 'jdk17' // تأكد من أنك قد قمت بتحديد JDK 17 في Jenkins
+        maven 'maven3' // تحديد Maven إذا كنت تستخدمه للبناء (اختياري)
     }
 
     stages {
-        // المرحلة الأولى: فحص الكود
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
-                // سحب الكود من مستودع GitHub
-                git branch: 'main', url: 'https://github.com/abdallabell/devops_project.git'
+                // سحب الكود من الريبو
+                git 'https://github.com/abdallabell/Ab_01.git'
             }
         }
 
-        // المرحلة الثانية: بناء الكود (Build)
-        stage('Build Java Application') {
+        stage('Build') {
             steps {
-                // بناء تطبيق جافا باستخدام الأمر javac
-                sh 'javac App.java'
+                script {
+                    // بناء تطبيق جافا باستخدام Maven أو Gradle أو أي أداة بناء أخرى
+                    sh 'mvn clean install'  // إذا كنت تستخدم Maven
+                    // sh './gradlew build'  // إذا كنت تستخدم Gradle
+                }
             }
         }
-
-    
 
         stage('Security Check') {
             steps {
@@ -33,66 +32,30 @@ pipeline {
             }
         }
 
-        
-
-
-        // المرحلة الرابعة: إعداد Docker
         stage('Build Docker Image') {
             steps {
-                // بناء صورة Docker
-                sh 'docker build -t $DOCKER_IMAGE .'
+                script {
+                    // بناء صورة Docker من Dockerfile
+                    sh 'docker build -t devops-java-app .'
+                }
             }
         }
 
-        // المرحلة الخامسة: تشغيل Docker
-        stage('Run Docker Container') {
+        stage('Run Docker') {
             steps {
-                // تشغيل الحاوية بعد بناء الصورة
-                sh 'docker run -d --name $APP_NAME $DOCKER_IMAGE'
-            }
-        }
-
-        // المرحلة السادسة: اختبار التطبيق داخل الحاوية
-        stage('Test Application') {
-            steps {
-                // اختبار التطبيق داخل الحاوية (على سبيل المثال اختبار بسيط عبر curl)
-                sh 'docker exec $APP_NAME curl http://localhost:8080/health'
-            }
-        }
-
-        // المرحلة السابعة: نشر التطبيق (Deployment)
-        stage('Deploy Application') {
-            steps {
-                // نشر التطبيق داخل الحاوية
-                sh 'docker run -d --name $APP_NAME -p 8080:8080 $DOCKER_IMAGE'
-            }
-        }
-
-        // المرحلة الثامنة: التحقق من حالة التطبيق بعد النشر
-        stage('Verify Application') {
-            steps {
-                // فحص الحالة بعد النشر باستخدام curl
-                sh 'curl http://localhost:8080/health'
-            }
-        }
-
-        // المرحلة التاسعة: تنظيف الحاويات القديمة
-        stage('Cleanup Docker Containers') {
-            steps {
-                // تنظيف الحاويات القديمة التي تعمل
-                sh 'docker ps -q --filter "status=exited" | xargs docker rm'
+                script {
+                    // تشغيل الحاوية من الصورة التي تم إنشاؤها
+                    sh 'docker run -d -p 8080:8080 devops-java-app'
+                }
             }
         }
     }
 
     post {
-        success {
-            // إذا كان التنفيذ ناجحًا، أرسل بريدًا إلكترونيًا أو رسالة إشعار
-            echo 'The pipeline has successfully completed.'
-        }
-        failure {
-            // إذا فشل التنفيذ، أرسل رسالة خطأ أو إشعار
-            echo 'The pipeline has failed.'
+        always {
+            // يمكنك هنا إضافة أي إجراءات يجب تنفيذها بعد كل عملية (مثل إرسال إشعار بالبريد الإلكتروني، تنظيف الحاويات القديمة، إلخ).
+            cleanWs()  // تنظيف المساحة بعد تنفيذ البايبلاين
         }
     }
 }
+
