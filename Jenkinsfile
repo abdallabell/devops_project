@@ -24,13 +24,17 @@ pipeline {
             }
         }
 
-        // المرحلة الثالثة: فحص الكود (مثال على OWASP Dependency-Check لفحص الأمان)
-        stage('OWASP Dependency-Check') {
+    
+
+        stage('Security Check') {
             steps {
-                // هنا يمكن إضافة فحص الأمان للكود (مثال OWASP)
+                // فحص الأمان باستخدام OWASP Dependency-Check
                 sh 'dependency-check --project devops-java-app --scan .'
             }
         }
+
+        
+
 
         // المرحلة الرابعة: إعداد Docker
         stage('Build Docker Image') {
